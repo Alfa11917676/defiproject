@@ -19,15 +19,10 @@ contract distributorContract is Ownable, ReentrancyGuard {
                 address _currentOwner;
                 address _tokenAddress;
         }
-        address public collectionPool1;
-        address public collectionPool2;
-        address public collectionPool3;
         address public insuranceFundAddress;
-        address pool1GovernanceToken;
-        address pool2GovernanceToken;
-        address pool3GovernanceToken;
         uint public minimumTimeQuantum = 1 days;
-        address[4] public governanceTokenAddress = [address(0),pool1GovernanceToken,pool2GovernanceToken,pool3GovernanceToken];
+        address[4] public collectionPools;
+        address[4] public governanceTokenAddress;
         uint[4] public nftIndexPerPool = [0,0,0,0];
         uint[4] public aprPercent = [0,25,50,100]; //2.5%,5%,10%
         uint[4] public poolPercent = [0,200,150,100];
@@ -44,30 +39,30 @@ contract distributorContract is Ownable, ReentrancyGuard {
                 rewardToken = IERC20(_rewardTokenAddress);
         }
 
-        function deposit (uint poolId, address _tokenAddress, uint tokenAmount) external nonReentrant {
+        function deposit (uint poolId, address tokenAddress, uint tokenAmount) external nonReentrant {
                 require (poolId > 0 && poolId < 4, 'Error: Invalid Pool Ids');
-                require (whitelistedTokens[_tokenAddress],'Error: Token Not Whitelisted');
+                require (whitelistedTokens[tokenAddress],'Error: Token Not Whitelisted');
                 uint tokenAmounts = tokenAmount * 1 ether;
-                uint termId = ++currentTermIdForUserPerPool[msg.sender][_tokenAddress][poolId];
-                uint weightageEquivalent = calculateGovernanceToken(poolId, tokenAmounts);
+                uint termId = ++currentTermIdForUserPerPool[msg.sender][tokenAddress][poolId];
+                uint weightageEquivalent = calculateGovernanceToken(poolId, tokenAmount);
                 uint currentIndexOfPool = nftIndexPerPool[poolId]+1;
                 ++nftIndexPerPool[poolId];
                 poolMapper[currentIndexOfPool][governanceTokenAddress[poolId]] = poolId;
+                if (poolId == 1) {
+                        uint insuranceAmount = tokenAmounts - (tokenAmounts * (1000-250))/1000;
+                        tokenAmounts -= insuranceAmount;
+                        IERC20(tokenAddress).transferFrom(msg.sender, insuranceFundAddress, insuranceAmount);
+                }
                 nftDetails storage details = detailsPerNftId[currentIndexOfPool][poolId];
                 details.poolId =poolId;
                 details.termId =termId;
                 details.weightageEquivalent =weightageEquivalent;
-                details.stakeAmount = tokenAmount;
+                details.stakeAmount = tokenAmounts;
                 details.stakeTime = block.timestamp;
                 details.lastClaimTime = block.timestamp;
                 details._currentOwner =msg.sender;
-                details._tokenAddress =_tokenAddress;
-                if (poolId == 1) {
-                        uint insuranceAmount = tokenAmount - (tokenAmount * (1000-250))/1000;
-                        tokenAmount -= insuranceAmount;
-                        IERC20(_tokenAddress).transferFrom(msg.sender, insuranceFundAddress, insuranceAmount);
-                }
-                IERC20(_tokenAddress).transferFrom(msg.sender, collectionPool1, tokenAmount);
+                details._tokenAddress =tokenAddress;
+                IERC20(tokenAddress).transferFrom(msg.sender, collectionPools[poolId], tokenAmounts);
                 IGovernanceNFT(governanceTokenAddress[poolId]).mintTokens(msg.sender, nftIndexPerPool[poolId]);
         }
 
@@ -97,7 +92,7 @@ contract distributorContract is Ownable, ReentrancyGuard {
                         delete poolMapper[_nftIds[i]][governanceTokenAddress[poolId]];
                         delete detailsPerNftId[_nftIds[i]][poolId];
                         IGovernanceNFT(governanceTokenAddress[poolId]).burnTokens(_nftIds[i]);
-                        IERC20(tokenAddress).transfer(msg.sender,amountToReturn);
+                        IERC20(tokenAddress).transferFrom(collectionPools[poolId],msg.sender,amountToReturn);
                 }
         }
 
@@ -119,16 +114,11 @@ contract distributorContract is Ownable, ReentrancyGuard {
         }
 
         function addCollectionPoolAddresses (address pool1, address pool2, address pool3) external onlyOwner {
-                collectionPool1 = pool1;
-                collectionPool2 = pool2;
-                collectionPool3 = pool3;
+                collectionPools = [address(0),pool1,pool2,pool3];
         }
 
         function addGovernanceTokenAddress (address _pool1GovernanceToken, address _pool2GovernanceToken, address _pool3GovernanceToken) external onlyOwner {
-                pool1GovernanceToken = _pool1GovernanceToken;
-                pool2GovernanceToken = _pool2GovernanceToken;
-                pool3GovernanceToken = _pool3GovernanceToken;
-                governanceTokenAddress = [(address(0)),pool1GovernanceToken,pool2GovernanceToken,pool3GovernanceToken];
+                governanceTokenAddress = [address(0),_pool1GovernanceToken,_pool2GovernanceToken,_pool3GovernanceToken];
         }
 
         function addInsuranceFundAddress (address _insuranceFundAddress) external onlyOwner {
@@ -174,4 +164,4 @@ contract distributorContract is Ownable, ReentrancyGuard {
 
 //todo: Write deployment script for the contracts
 //todo: Add comment in the code to increase readability
-//todo: Write a testsuite before giving it away to SUN for testing
+

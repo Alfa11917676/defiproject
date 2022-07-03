@@ -40,6 +40,6 @@ contract governanceToken is ERC721, Ownable {
     ) internal override virtual {
         if (from != address(0) && to != address(0))
             distributorAddress.changeDetailsOfInvestors(to,address(this),tokenId);
-            _beforeTokenTransfer(from, to, tokenId);
+        super._beforeTokenTransfer(from, to, tokenId);
     }
 }
