@@ -25,7 +25,7 @@ contract distributorContract is Ownable, ReentrancyGuard {
         address[4] public governanceTokenAddress;
         uint[4] public nftIndexPerPool = [0,0,0,0];
         uint[4] public aprPercent = [0,25,50,100]; //2.5%,5%,10%
-        uint[4] public poolPercent = [0,200,150,100];
+        uint[4] public weightageCalculationPercentagePerPool = [0,200,150,100];
         uint[3] public lockQuantumPerPool = [0,10 days, 20 days];
         // tokenId => poolId => nftDetails
         mapping (uint =>  mapping( uint => nftDetails)) detailsPerNftId;
@@ -100,13 +100,18 @@ contract distributorContract is Ownable, ReentrancyGuard {
                 uint amount = detailsPerNftId[_nftId][poolId].stakeAmount;
                 uint lastClaimTime = detailsPerNftId[_nftId][poolId].lastClaimTime;
                 uint finalAmount;
+                uint time;
                 if (block.timestamp > lastClaimTime + minimumTimeQuantum)
-                        finalAmount =  (amount - ((amount * (1000 - aprPercent[poolId]))/1000));
-                return finalAmount;
+                {
+                        finalAmount = (amount - ((amount * (1000 - aprPercent[poolId])) / 1000));
+                        time = (block.timestamp - lastClaimTime + minimumTimeQuantum)/minimumTimeQuantum;
+
+                }
+                return time * finalAmount;
         }
 
         function calculateGovernanceToken(uint poolId, uint tokenAmount) internal view returns(uint) {
-                return (tokenAmount * poolPercent[poolId]) / 1000;
+                return (tokenAmount * weightageCalculationPercentagePerPool[poolId]) / 1000;
         }
 
         function viewNftDetails (uint tokenId, uint poolId) external view returns(nftDetails memory) {
@@ -149,6 +154,22 @@ contract distributorContract is Ownable, ReentrancyGuard {
 
         function removeAuthorisedCaller(address _caller) external onlyOwner {
                 authorisedCaller[_caller] = false;
+        }
+
+        function changeMinimumQuantum(uint time) external onlyOwner {
+                minimumTimeQuantum = time;
+        }
+
+        function changeLockQuantumPerPool(uint[3] memory time) external onlyOwner {
+                lockQuantumPerPool = time;
+        }
+
+        function changeAPR(uint[4] memory apr) external onlyOwner {
+                aprPercent = apr;
+        }
+
+        function changeWeightageCalculationPercentagePerPool(uint[4] memory weightage) external onlyOwner {
+                weightageCalculationPercentagePerPool = weightage;
         }
 
         function changeDetailsOfInvestors(address _to, address _nftAddress, uint _tokenId) external {
