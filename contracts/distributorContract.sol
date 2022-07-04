@@ -3,6 +3,7 @@
 pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./IGovernanceNFT.sol";
+import "./IPool.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "hardhat/console.sol";
@@ -92,7 +93,7 @@ contract distributorContract is Ownable, ReentrancyGuard {
                         delete poolMapper[_nftIds[i]][governanceTokenAddress[poolId]];
                         delete detailsPerNftId[_nftIds[i]][poolId];
                         IGovernanceNFT(governanceTokenAddress[poolId]).burnTokens(_nftIds[i]);
-                        IERC20(tokenAddress).transferFrom(collectionPools[poolId],msg.sender,amountToReturn);
+                        IPool(collectionPools[poolId]).transferFunds(tokenAddress,msg.sender,amountToReturn);
                 }
         }
 
