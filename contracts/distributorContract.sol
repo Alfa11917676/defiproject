@@ -9,7 +9,6 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "hardhat/console.sol";
 contract distributorContract is Ownable, ReentrancyGuard {
 
-        IERC20 rewardToken;
         struct nftDetails {
                 uint poolId;
                 uint termId;
@@ -69,16 +68,14 @@ contract distributorContract is Ownable, ReentrancyGuard {
 
         function claimFunds (uint[] memory poolIds, uint[] memory _nftIds) external nonReentrant {
                 require(poolIds.length == _nftIds.length,'Error: Array length Not Equal');
-                uint totalRewardAmount;
                 for (uint i=0; i< poolIds.length; i++) {
                         require (IGovernanceNFT(governanceTokenAddress[poolIds[i]]).ownerOf(_nftIds[i]) == msg.sender,'Error: Caller Not Owner');
                         uint amount = getRewardDetails(poolIds[i], _nftIds[i]);
                         nftDetails storage details = detailsPerNftId[_nftIds[i]][poolIds[i]];
                         details.lastClaimTime = block.timestamp;
-                        totalRewardAmount+= amount;
+                        require(amount > 0 ,'Error: Not Enough Reward Collected');
+                        IPool(collectionPools[poolIds[i]]).payRewards(msg.sender, amount);
                 }
-                require(totalRewardAmount > 0,'Error: Not Enough Reward Collected');
-                rewardToken.transfer(msg.sender, totalRewardAmount);
         }
 
         function unstakeTokens (uint[] memory poolIds, uint[] memory _nftIds) external nonReentrant {
