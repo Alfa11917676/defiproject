@@ -70,7 +70,9 @@ async function main() {
   await distributor.changeMinimumQuantum(60)
   await distributor.changeLockQuantumPerPool([0,350, 400])
 
-  console.log('The rewardToken address is ', rewardToken.address)
+  console.log('The rewardToken1 address is ', rewardToken1.address)
+  console.log('The rewardToken2 address is ', rewardToken2.address)
+  console.log('The rewardToken3 address is ', rewardToken3.address)
   console.log('The investorToken1 address is ', investorToken1.address)
   console.log('The investorToken2 address is ', investorToken2.address)
   console.log('The investorToken3 address is ', investorToken3.address)
