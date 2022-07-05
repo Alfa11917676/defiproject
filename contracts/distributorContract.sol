@@ -35,10 +35,6 @@ contract distributorContract is Ownable, ReentrancyGuard {
         // user => tokenAddress => poolId => termId
         mapping (address => mapping (address => mapping (uint => uint))) public currentTermIdForUserPerPool;
 
-        constructor (address _rewardTokenAddress) {
-                rewardToken = IERC20(_rewardTokenAddress);
-        }
-
         function deposit (uint poolId, address tokenAddress, uint tokenAmount) external nonReentrant {
                 require (poolId > 0 && poolId < 4, 'Error: Invalid Pool Ids');
                 require (whitelistedTokens[tokenAddress],'Error: Token Not Whitelisted');
@@ -126,10 +122,6 @@ contract distributorContract is Ownable, ReentrancyGuard {
 
         function addInsuranceFundAddress (address _insuranceFundAddress) external onlyOwner {
                 insuranceFundAddress = _insuranceFundAddress;
-        }
-
-        function setRewardTokenAddress (address _rewardTokenAddress) external onlyOwner {
-                rewardToken = IERC20(_rewardTokenAddress);
         }
 
         function whitelistTokenAddresses (address[] memory addresses) external onlyOwner {
